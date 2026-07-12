@@ -8,21 +8,22 @@ import com.raj.tradewise.entity.AppUser;
 import com.raj.tradewise.exception.EmailAlreadyExistsException;
 import com.raj.tradewise.exception.InvalidCredentialsException;
 import com.raj.tradewise.repository.AppUserRepository;
+import com.raj.tradewise.security.JwtService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.Optional;
 
 @Service
 public class AppUserService {
 
     private final AppUserRepository appUserRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
 
-    public AppUserService(AppUserRepository appUserRepository,PasswordEncoder passwordEncoder){
+    public AppUserService(AppUserRepository appUserRepository,PasswordEncoder passwordEncoder, JwtService jwtService){
     this.appUserRepository=appUserRepository;
     this.passwordEncoder=passwordEncoder;
+    this.jwtService=jwtService;
     }
 
     public RegisterResponse registerUser(RegisterRequest registerRequest){
@@ -34,7 +35,7 @@ public class AppUserService {
         return mapToResponse(appUserRepository.save(appUser));
     }
 
-    public AppUser mapToEntity(RegisterRequest registerRequest){
+    private AppUser mapToEntity(RegisterRequest registerRequest){
         AppUser appUser = new AppUser();
         appUser.setName(registerRequest.getName());
         appUser.setEmail(registerRequest.getEmail());
@@ -58,12 +59,18 @@ public class AppUserService {
         if(!passwordEncoder.matches(request.getPassword(),user.getPassword())){
             throw new InvalidCredentialsException("Invalid credentials");
         }
-        return mapToLoginResponse();
+//        JwtService jwtService = new JwtService();
+        // creating token to store user login
+        String token = jwtService.generateToken(user);
+
+
+        return mapToLoginResponse(token);
     }
 
-    private LoginResponse mapToLoginResponse(){
+    private LoginResponse mapToLoginResponse(String token){
         LoginResponse response = new LoginResponse();
         response.setMessage("Login Successful");
+        response.setToken(token);
         return response;
     }
 
