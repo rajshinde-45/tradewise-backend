@@ -1,5 +1,15 @@
 package com.raj.tradewise.dto.response;
 
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@AllArgsConstructor
+@NoArgsConstructor
 public class RegisterResponse {
 
 //    private Long id;
@@ -22,20 +32,4 @@ public class RegisterResponse {
 //    public void setName(String name) {
 //        this.name = name;
 //    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public String getMessage() {
-        return message;
-    }
-
-    public void setMessage(String message) {
-        this.message = message;
-    }
 }

@@ -1,23 +1,19 @@
 package com.raj.tradewise.dto.response;
 
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@AllArgsConstructor
+@NoArgsConstructor
 public class LoginResponse {
 
     private String token;
     private String message;
 
-    public String getMessage() {
-        return message;
-    }
 
-    public String getToken() {
-        return token;
-    }
-
-    public void setToken(String token) {
-        this.token = token;
-    }
-
-    public void setMessage(String message) {
-        this.message = message;
-    }
 }

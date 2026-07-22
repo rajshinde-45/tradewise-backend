@@ -8,7 +8,6 @@ import com.raj.tradewise.entity.AppUser;
 import com.raj.tradewise.exception.EmailAlreadyExistsException;
 import com.raj.tradewise.exception.InvalidCredentialsException;
 import com.raj.tradewise.repository.AppUserRepository;
-import com.raj.tradewise.security.JwtService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 

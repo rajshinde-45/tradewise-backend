@@ -15,4 +15,9 @@ public class GlobalExceptionHandler {
     public String handleInvalidCredentialsException(InvalidCredentialsException ex){
         return ex.getMessage();
     }
+
+    @ExceptionHandler(PortfolioNotFoundException.class)
+    public String handlePortfolioNotFoundException(PortfolioNotFoundException ex){
+        return ex.getMessage();
+    }
 }

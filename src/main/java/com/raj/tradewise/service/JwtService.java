@@ -1,4 +1,4 @@
-package com.raj.tradewise.security;
+package com.raj.tradewise.service;
 
 import com.raj.tradewise.entity.AppUser;
 import io.jsonwebtoken.Claims;
@@ -9,7 +9,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import javax.crypto.SecretKey;
 
-import javax.crypto.SecretKey;
 import java.util.Date;
 
 @Service

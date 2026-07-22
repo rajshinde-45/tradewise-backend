@@ -3,6 +3,7 @@ package com.raj.tradewise.security;
 import com.raj.tradewise.entity.AppUser;
 import com.raj.tradewise.exception.InvalidCredentialsException;
 import com.raj.tradewise.repository.AppUserRepository;
+import com.raj.tradewise.service.JwtService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
