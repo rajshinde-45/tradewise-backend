@@ -3,12 +3,16 @@ package com.raj.tradewise.service;
 
 import com.raj.tradewise.dto.stock.BuyStockRequest;
 import com.raj.tradewise.dto.stock.HoldingResponse;
+import com.raj.tradewise.dto.stock.SellStockRequest;
+import com.raj.tradewise.dto.stock.SellStockResponse;
 import com.raj.tradewise.entity.Holding;
 import com.raj.tradewise.entity.Portfolio;
 import com.raj.tradewise.entity.Stock;
-import com.raj.tradewise.exception.PortfolioNotFoundException;
+import com.raj.tradewise.exception.HoldingNotFoundException;
+import com.raj.tradewise.exception.InsufficientQuantityException;
+import com.raj.tradewise.exception.MissingInstrumentKeyException;
+import com.raj.tradewise.exception.StockNotFoundException;
 import com.raj.tradewise.repository.HoldingRepository;
-import com.raj.tradewise.repository.PortfolioRepository;
 import com.raj.tradewise.repository.StockRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -16,39 +20,80 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.List;
 import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
 public class HoldingService {
 
-    private final PortfolioRepository portfolioRepository;
     private final HoldingRepository holdingRepository;
     private final StockRepository stockRepository;
+    private final PortfolioService portfolioService;
+
 
     @Transactional
     public HoldingResponse buyStock(BuyStockRequest request){
-        Portfolio portfolio = findPortfolio(request.getPortfolioId());
+        Portfolio portfolio = portfolioService.findOwnedPortfolio(request.getPortfolioId());
         Stock stock = findOrCreateStock(request);
         Holding holding = findOrCreateHolding(request,portfolio,stock);
         return mapToResponse(holding);
     }
 
-    private Portfolio findPortfolio(Long id){
-        Portfolio portfolio = portfolioRepository.findById(id).orElseThrow(()-> new PortfolioNotFoundException("Portfolio not found"));
-        return portfolio;
-    }
+
     private Stock findOrCreateStock(BuyStockRequest request){
-        Stock stock = stockRepository.findBySymbol(request.getSymbol()).orElseGet(()->
-                {
-                    Stock newStock = new Stock();
-                    newStock.setSymbol(request.getSymbol());
-                    newStock.setSector(request.getSector());
-                    newStock.setExchange(request.getExchange());
-                    newStock.setCompanyName(request.getCompanyName());
-                    return stockRepository.save(newStock);
-                });
-        return stock;
+//        Stock stock = stockRepository.findBySymbol(request.getSymbol()).orElseGet(()->
+//                {
+//                    Stock newStock = new Stock();
+//                    newStock.setSymbol(request.getSymbol());
+//                    newStock.setSector(request.getSector());
+//                    newStock.setExchange(request.getExchange());
+//                    newStock.setCompanyName(request.getCompanyName());
+//                    return stockRepository.save(newStock);
+//                });
+//        return stock;
+
+            Optional<Stock> existingStock = stockRepository.findBySymbol(request.getSymbol());
+
+            if (existingStock.isPresent()) {
+
+                Stock stock = existingStock.get();
+
+                // Populate the key for an existing stock if it is missing
+                if (stock.getInstrumentKey() == null
+                        || stock.getInstrumentKey().isBlank()) {
+
+                    if (request.getInstrumentKey() == null
+                            || request.getInstrumentKey().isBlank()) {
+                        throw new IllegalArgumentException(
+                                "Instrument key is required for stock: "
+                                        + stock.getSymbol()
+                        );
+                    }
+
+                    stock.setInstrumentKey(request.getInstrumentKey());
+                    stock = stockRepository.save(stock);
+                }
+
+                return stock;
+            }
+
+            // A new stock must have an instrument key
+            if (request.getInstrumentKey() == null
+                    || request.getInstrumentKey().isBlank()) {
+                throw new MissingInstrumentKeyException(
+                        "Instrument key is required when creating a new stock"
+                );
+            }
+
+            Stock newStock = new Stock();
+            newStock.setSymbol(request.getSymbol());
+            newStock.setSector(request.getSector());
+            newStock.setExchange(request.getExchange());
+            newStock.setCompanyName(request.getCompanyName());
+            newStock.setInstrumentKey(request.getInstrumentKey());
+
+            return stockRepository.save(newStock);
     }
 
     private Holding findOrCreateHolding(BuyStockRequest request,Portfolio portfolio, Stock stock){
@@ -88,5 +133,49 @@ public class HoldingService {
         return response;
     }
 
+
+    public List<HoldingResponse> getPortfolioHoldings(Long portfolioId){
+        Portfolio portfolio = portfolioService.findOwnedPortfolio(portfolioId);
+        List<Holding> holdings = holdingRepository.findByPortfolio(portfolio);
+
+        //Instead of this
+//        List<HoldingResponse> responses = new ArrayList<>();
+//        for(Holding holding: holdings){
+//            HoldingResponse response = mapToResponse(holding);
+//            responses.add(response);
+//        }
+//       we can use this
+        return holdings.stream().map(this::mapToResponse).toList();
+    }
+    
+    @Transactional
+    public SellStockResponse sellStocks(SellStockRequest request){
+        Portfolio portfolio = portfolioService.findOwnedPortfolio(request.getPortfolioId());
+        Stock stock = stockRepository.findBySymbol(request.getSymbol()).orElseThrow(()-> new StockNotFoundException("Stock not found"));
+
+        Holding holding = holdingRepository.findByPortfolioAndStock(portfolio,stock).orElseThrow(()-> new HoldingNotFoundException("Holding not found"));
+
+        Integer requestedQuantity = request.getQuantity();
+        Integer ownedQuantity = holding.getQuantity();
+        if(requestedQuantity>ownedQuantity){
+            throw new InsufficientQuantityException("Insufficient quantity");
+        }
+        if(requestedQuantity.equals(ownedQuantity)){
+            holdingRepository.delete(holding);
+            return new SellStockResponse(
+                    "Stock sold successfully",
+                    stock.getSymbol(),
+                    requestedQuantity
+            );
+        }
+
+        holding.setQuantity(ownedQuantity-requestedQuantity);
+        holdingRepository.save(holding);
+
+
+        return new SellStockResponse("Stock sold successfully",
+                stock.getSymbol(),
+                requestedQuantity);
+    }
 
 }

@@ -28,6 +28,9 @@ public class Stock {
     private String exchange;
     private String sector;
 
+    @Column(unique = true)
+    private String instrumentKey;
+
     @OneToMany(
             mappedBy = "stock"
     )
